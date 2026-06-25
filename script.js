@@ -6,48 +6,100 @@ const lengthValue = document.getElementById("lengthValue");
 const numbers = document.getElementById("numbers");
 const symbols = document.getElementById("symbols");
 const message = document.getElementById("message");
+const strengthText = document.getElementById("strengthText");
 
 lengthSlider.addEventListener("input", () => {
-    lengthValue.innerText = lengthSlider.value;
+    lengthValue.textContent = lengthSlider.value;
+    generatePassword();
 });
 
 generateBtn.addEventListener("click", generatePassword);
 
 function generatePassword() {
 
-    let chars =
-        "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz";
+    let lowercase = "abcdefghijklmnopqrstuvwxyz";
+    let uppercase = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    let digits = "0123456789";
+    let special = "!@#$%^&*()_+{}[]<>?";
 
-    if(numbers.checked){
-        chars += "0123456789";
+    let chars = lowercase + uppercase;
+
+    if (numbers.checked) {
+        chars += digits;
     }
 
-    if(symbols.checked){
-        chars += "!@#$%^&*()_+{}[]<>?";
+    if (symbols.checked) {
+        chars += special;
     }
 
     let pass = "";
 
-    for(let i = 0; i < lengthSlider.value; i++){
-        pass += chars.charAt(
-            Math.floor(Math.random() * chars.length)
-        );
+    const randomArray = new Uint32Array(lengthSlider.value);
+    crypto.getRandomValues(randomArray);
+
+    for (let i = 0; i < lengthSlider.value; i++) {
+        pass += chars[randomArray[i] % chars.length];
     }
 
     password.value = pass;
+
+    updateStrength(pass);
 }
 
-copyBtn.addEventListener("click", () => {
+function updateStrength(pass) {
 
-    if(password.value === ""){
+    let score = 0;
+
+    if (pass.length >= 8) score++;
+    if (pass.length >= 12) score++;
+    if (/[0-9]/.test(pass)) score++;
+    if (/[!@#$%^&*()_+{}[\]<>?]/.test(pass)) score++;
+
+    if (score <= 2) {
+        strengthText.textContent = "Weak 🔴";
+        strengthText.style.color = "#ef4444";
+    }
+    else if (score === 3) {
+        strengthText.textContent = "Medium 🟡";
+        strengthText.style.color = "#facc15";
+    }
+    else {
+        strengthText.textContent = "Strong 🟢";
+        strengthText.style.color = "#22c55e";
+    }
+}
+
+copyBtn.addEventListener("click", async () => {
+
+    if (!password.value) {
+        message.innerText = "⚠ Generate a password first";
         return;
     }
 
-    navigator.clipboard.writeText(password.value);
+    try {
 
-    message.innerText = "✅ Password Copied!";
+        await navigator.clipboard.writeText(password.value);
+
+        copyBtn.innerHTML = "✓";
+
+        message.innerText = "✅ Password Copied Successfully!";
+
+        setTimeout(() => {
+            copyBtn.innerHTML =
+                '<i class="fa-regular fa-copy"></i>';
+        }, 1500);
+
+    } catch {
+
+        message.innerText = "❌ Copy Failed";
+    }
 
     setTimeout(() => {
         message.innerText = "";
     }, 2000);
 });
+
+numbers.addEventListener("change", generatePassword);
+symbols.addEventListener("change", generatePassword);
+
+window.addEventListener("load", generatePassword);
